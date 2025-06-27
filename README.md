@@ -2,14 +2,14 @@
 
 A schema-based multi-tenant Django REST API system with PostgreSQL. Each "Center" gets its own database schema ensuring complete data isolation between tenants.
 
-## 🏗️ Architecture
+## Architecture Overview
 
 - **Multi-Tenancy Model**: Schema-based isolation
 - **Database**: PostgreSQL with one database, multiple schemas per tenant
 - **Backend**: Django REST Framework
 - **Containerization**: Docker & Docker Compose
 
-## 🗂️ Database Design
+## Database Design
 
 ### Public Schema (Shared)
 - `public.centers` - Tenant registry
@@ -18,7 +18,7 @@ A schema-based multi-tenant Django REST API system with PostgreSQL. Each "Center
 ### Tenant Schemas (Per Center)
 - `center_{tenant_id}.samples` - Tenant-specific sample data
 
-## 📊 Data Models
+## Data Models
 
 ### BaseModel (Abstract)
 All models inherit from BaseModel which provides:
@@ -56,18 +56,18 @@ All models inherit from BaseModel which provides:
 - metadata: JSONField (flexible data)
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Docker & Docker Compose
 - Git
 
-### Setup
+### Installation
 
 1. **Clone the repository**
 ```bash
-git clone <repository-url>
-cd genoks-case
+git clone https://github.com/AtaUmutOZSOY/genoks_case_project.git
+cd genoks_case_project
 ```
 
 2. **Start the services**
@@ -75,7 +75,7 @@ cd genoks-case
 docker compose up -d
 ```
 
-3. **Check container status**
+3. **Verify container status**
 ```bash
 docker compose ps
 ```
@@ -85,14 +85,16 @@ docker compose ps
 docker compose exec web python manage.py createsuperuser
 ```
 
-### Services
+### Available Services
 
 - **API**: http://localhost:8000
 - **Admin Panel**: http://localhost:8000/admin/
+- **API Documentation**: http://localhost:8000/api/docs/
+- **ReDoc Documentation**: http://localhost:8000/api/redoc/
 - **Database**: PostgreSQL on port 5432
 - **Redis**: Redis on port 6379
 
-## 📡 API Endpoints
+## API Endpoints
 
 ### Centers Management
 ```
@@ -106,6 +108,7 @@ DELETE /api/centers/{id}/               # Soft delete center
 POST   /api/centers/{id}/restore/       # Restore soft deleted center
 DELETE /api/centers/{id}/hard_delete/   # Permanently delete center
 GET    /api/centers/{id}/stats/         # Get center statistics
+GET    /api/centers/summary/            # Get centers summary
 ```
 
 ### User Management
@@ -120,6 +123,7 @@ DELETE /api/users/{id}/                 # Soft delete user
 POST   /api/users/{id}/change_center/   # Change user's center
 POST   /api/users/{id}/change_role/     # Change user's role
 GET    /api/users/by_center/{center_id}/ # Get users by center
+GET    /api/users/summary/              # Get users summary
 ```
 
 ### Sample Management (Tenant-Specific)
@@ -137,13 +141,14 @@ POST   /api/centers/{center_id}/samples/{id}/reject/         # Reject sample
 POST   /api/centers/{center_id}/samples/{id}/archive/        # Archive sample
 GET    /api/centers/{center_id}/samples/by_barcode/{barcode}/ # Find by barcode
 GET    /api/centers/{center_id}/samples/by_status/{status}/   # Filter by status
+GET    /api/centers/{center_id}/samples/stats/               # Get sample statistics
 ```
 
-## 🛠️ Development
+## Development
 
 ### Project Structure
 ```
-genoks-case/
+genoks_case_project/
 ├── apps/
 │   ├── centers/         # Center management
 │   ├── users/           # User management
@@ -158,7 +163,7 @@ genoks-case/
 └── requirements.txt
 ```
 
-### Environment Variables
+### Environment Configuration
 
 The application uses environment variables defined in `docker-compose.yml`:
 
@@ -170,7 +175,7 @@ The application uses environment variables defined in `docker-compose.yml`:
 - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,web
 ```
 
-### Running Commands
+### Management Commands
 
 ```bash
 # Access Django shell
@@ -190,7 +195,7 @@ docker compose logs web
 docker compose logs -f web  # Follow logs
 ```
 
-## 🏛️ Multi-Tenant Features
+## Multi-Tenant Features
 
 ### Schema Management
 - **Dynamic Schema Creation**: Automatically creates new schema when a center is created
@@ -214,9 +219,9 @@ with set_tenant_schema_context('center_123'):
     samples = Sample.objects.all()  # Only samples from this tenant
 ```
 
-## 🔧 Administration
+## Administration
 
-### Django Admin
+### Django Admin Interface
 - **URL**: http://localhost:8000/admin/
 - **Features**: Manage centers, users, and view statistics
 - **Bulk Actions**: Activate/deactivate users, change roles
@@ -233,9 +238,9 @@ docker compose exec db psql -U postgres -d multitenant_db
 SET search_path TO center_123, public;
 ```
 
-## 🧪 Testing
+## Testing
 
-### API Testing with curl
+### API Testing
 
 ```bash
 # Test centers endpoint (requires authentication)
@@ -249,12 +254,12 @@ curl -X POST http://localhost:8000/api/centers/ \
 ```
 
 ### Sample Data
-The system comes with pre-created test data:
+The system includes pre-created test data:
 - 2 Centers: "Istanbul Medical Center" and "Ankara Research Lab"  
 - 3 Users with different roles
 - Sample data in tenant schemas
 
-## 🚢 Production Deployment
+## Production Deployment
 
 ### Environment Configuration
 1. Set `DEBUG=False`
@@ -270,7 +275,7 @@ The system comes with pre-created test data:
 - **Access Control**: Role-based permissions per tenant
 - **Audit Trail**: Built-in audit fields in BaseModel
 
-## 📚 Technology Stack
+## Technology Stack
 
 - **Django 4.2+**: Web framework
 - **Django REST Framework**: API framework
@@ -278,8 +283,9 @@ The system comes with pre-created test data:
 - **Redis 7**: Caching and session storage
 - **Docker**: Containerization
 - **psycopg2**: PostgreSQL adapter
+- **drf-spectacular**: API documentation
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -287,10 +293,10 @@ The system comes with pre-created test data:
 4. Add tests if applicable
 5. Submit a pull request
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ---
 
-**Note**: This is a case study implementation for multi-tenant Django REST API with schema-based isolation. Modify according to your specific requirements before production use. 
+**Note**: This is a case study implementation for multi-tenant Django REST API with schema-based isolation. Modify according to your specific requirements before production use.
