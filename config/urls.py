@@ -29,7 +29,7 @@ urlpatterns = [
     # API endpoints
     path('api/', include('apps.centers.urls')),
     path('api/', include('apps.users.urls')),
-    path('api/centers/<int:center_id>/', include('apps.samples.urls')),
+    path('api/centers/<uuid:center_id>/', include('apps.samples.urls')),
 ]
 
 # Serve static and media files during development
