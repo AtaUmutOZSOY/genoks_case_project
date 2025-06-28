@@ -10,7 +10,6 @@ from typing import Dict, Any, Optional, List
 from unittest.mock import patch
 
 from django.test import TestCase, TransactionTestCase
-from django.contrib.auth import get_user_model
 from django.db import connection, transaction
 from django.urls import reverse
 from rest_framework.test import APITestCase, APIClient
@@ -18,10 +17,7 @@ from rest_framework import status
 
 from apps.centers.models import Center
 from apps.users.models import User
-from utils.tenant_utils import create_tenant_schema, delete_tenant_schema, set_tenant_schema
-
-
-User = get_user_model()
+from utils.tenant_utils import create_tenant_schema, delete_tenant_schema, set_tenant_schema_context
 
 
 class MultiTenantTestMixin:
@@ -55,67 +51,58 @@ class BaseAPITestCase(APITestCase, MultiTenantTestMixin):
         self.client = APIClient()
         self.maxDiff = None  # Show full diff in test failures
         
+        # Create test centers first
+        self.test_center = self.create_test_center(
+            name='Test Center',
+            schema_name='center_test1',
+            description='Test Center Description'
+        )
+        self.another_center = self.create_test_center(
+            name='Another Center',
+            schema_name='center_test2',
+            description='Another Center Description'
+        )
+        
         # Create test users with different roles
         self.admin_user = self.create_test_user(
             username='admin_user',
             email='admin@test.com',
-            role='admin'
+            role='admin',
+            center=self.test_center
         )
         self.regular_user = self.create_test_user(
             username='regular_user',
             email='user@test.com',
-            role='user'
+            role='user',
+            center=self.test_center
         )
         self.viewer_user = self.create_test_user(
             username='viewer_user',
             email='viewer@test.com',
-            role='viewer'
+            role='viewer',
+            center=self.another_center
         )
-        
-        # Create test centers
-        self.test_center = self.create_test_center(
-            name='Test Center',
-            code='TC001',
-            address='Test Address'
-        )
-        self.another_center = self.create_test_center(
-            name='Another Center',
-            code='AC002',
-            address='Another Address'
-        )
-        
-        # Assign users to centers
-        self.admin_user.center = self.test_center
-        self.admin_user.save()
-        self.regular_user.center = self.test_center
-        self.regular_user.save()
-        self.viewer_user.center = self.another_center
-        self.viewer_user.save()
     
     def create_test_user(self, username: str, email: str, role: str = 'user', 
                         center: Optional[Center] = None) -> User:
         """Create a test user with specified role."""
-        user = User.objects.create_user(
+        user = User.objects.create(
             username=username,
             email=email,
-            password='testpass123',
             first_name='Test',
             last_name='User',
             role=role,
-            center=center
+            center=center or self.test_center
         )
         return user
     
-    def create_test_center(self, name: str, code: str, address: str, 
+    def create_test_center(self, name: str, schema_name: str = None, description: str = '', 
                           is_active: bool = True) -> Center:
         """Create a test center."""
         center = Center.objects.create(
             name=name,
-            code=code,
-            address=address,
-            phone='123-456-7890',
-            email=f'{code.lower()}@test.com',
-            is_active=is_active
+            schema_name=schema_name,
+            description=description
         )
         return center
     
@@ -206,6 +193,10 @@ class TenantAwareTestCase(BaseAPITestCase):
     
     def setUp(self):
         super().setUp()
+        # Ensure tenant_schemas is initialized if not already done
+        if not hasattr(self, 'tenant_schemas'):
+            self.tenant_schemas = []
+            
         # Create tenant schemas for test centers
         self.test_center_schema = f"center_{self.test_center.id.hex}"
         self.another_center_schema = f"center_{self.another_center.id.hex}"
@@ -215,7 +206,7 @@ class TenantAwareTestCase(BaseAPITestCase):
     
     def with_tenant_context(self, center: Center):
         """Context manager for tenant operations."""
-        return set_tenant_schema(f"center_{center.id.hex}")
+        return set_tenant_schema_context(center.id.hex)
 
 
 class MockTimeTestMixin:
@@ -235,11 +226,8 @@ class TestDataFactory:
         """Generate center test data."""
         defaults = {
             'name': 'Test Center',
-            'code': 'TC001',
-            'address': '123 Test Street',
-            'phone': '123-456-7890',
-            'email': 'test@center.com',
-            'is_active': True
+            'schema_name': 'center_test',
+            'description': 'Test center description'
         }
         defaults.update(kwargs)
         return defaults

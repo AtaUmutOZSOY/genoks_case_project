@@ -70,7 +70,7 @@ class CenterViewSet(viewsets.ModelViewSet):
     - Delete center (soft delete)
     """
     
-    queryset = Center.objects.all()
+    queryset = Center.all_objects.all()  # Use all_objects to include soft-deleted centers
     permission_classes = [IsAuthenticated]
     pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -198,7 +198,14 @@ class CenterViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def restore(self, request, pk=None):
         """Restore a soft-deleted center."""
-        center = self.get_object()
+        # Get center from all_objects to include soft-deleted ones
+        try:
+            center = Center.all_objects.get(pk=pk)
+        except Center.DoesNotExist:
+            return Response(
+                {'error': 'Center not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         
         if center.is_active:
             return Response(

@@ -142,6 +142,16 @@ class User(BaseModel):
         """Get the schema name of the user's center."""
         return self.center.schema_name if self.center else None
     
+    @property
+    def is_authenticated(self):
+        """Check if user is authenticated (always True for saved users)."""
+        return True
+    
+    @property
+    def is_anonymous(self):
+        """Check if user is anonymous (always False for saved users)."""
+        return False
+    
     def can_access_center(self, center):
         """
         Check if user can access a specific center.

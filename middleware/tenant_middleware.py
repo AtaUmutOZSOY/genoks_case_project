@@ -22,8 +22,8 @@ class TenantMiddleware:
     
     def __init__(self, get_response):
         self.get_response = get_response
-        # Compile regex patterns for better performance
-        self.tenant_url_pattern = re.compile(r'/api/centers/(\d+)/')
+        # Compile regex patterns for better performance - support UUID format
+        self.tenant_url_pattern = re.compile(r'/api/centers/([a-f0-9-]{36})/')
         
     def __call__(self, request):
         # Extract tenant info from URL
@@ -62,13 +62,13 @@ class TenantMiddleware:
         # Check if this is a tenant-specific URL
         match = self.tenant_url_pattern.search(path)
         if match:
-            center_id = int(match.group(1))
+            center_id = match.group(1)  # UUID string, not int
             
             # Validate that the center exists (with caching)
             if self.validate_center_exists(center_id):
                 return {
                     'center_id': center_id,
-                    'schema_name': f"{settings.TENANT_SCHEMA_PREFIX}{center_id}"
+                    'schema_name': f"{settings.TENANT_SCHEMA_PREFIX}{center_id.replace('-', '')}"
                 }
             else:
                 raise Http404(f"Center with ID {center_id} does not exist")
@@ -81,7 +81,7 @@ class TenantMiddleware:
         Uses caching to avoid frequent database queries.
         
         Args:
-            center_id: ID of the center to validate
+            center_id: ID of the center to validate (UUID string)
             
         Returns:
             bool: True if center exists, False otherwise
@@ -109,9 +109,10 @@ class TenantMiddleware:
         Set the database schema to the tenant schema.
         
         Args:
-            center_id: ID of the center/tenant
+            center_id: ID of the center/tenant (UUID string)
         """
-        schema_name = f"{settings.TENANT_SCHEMA_PREFIX}{center_id}"
+        # Remove hyphens from UUID for schema name
+        schema_name = f"{settings.TENANT_SCHEMA_PREFIX}{center_id.replace('-', '')}"
         self.set_schema(schema_name)
     
     def set_public_schema(self):
@@ -155,16 +156,16 @@ class TenantContextMiddleware:
     
     def __init__(self, get_response):
         self.get_response = get_response
-        self.tenant_url_pattern = re.compile(r'/api/centers/(\d+)/')
+        self.tenant_url_pattern = re.compile(r'/api/centers/([a-f0-9-]{36})/')
     
     def __call__(self, request):
         # Extract tenant info from URL
         match = self.tenant_url_pattern.search(request.path)
         if match:
-            center_id = int(match.group(1))
+            center_id = match.group(1)  # UUID string
             request.tenant = {
                 'center_id': center_id,
-                'schema_name': f"{settings.TENANT_SCHEMA_PREFIX}{center_id}"
+                'schema_name': f"{settings.TENANT_SCHEMA_PREFIX}{center_id.replace('-', '')}"
             }
         else:
             request.tenant = None
