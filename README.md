@@ -87,12 +87,56 @@ docker compose exec web python manage.py createsuperuser
 
 ### Available Services
 
-- **API**: http://localhost:8000
+- **API & Interactive Documentation**: http://localhost:8000 (auto-redirects to Swagger UI)
 - **Admin Panel**: http://localhost:8000/admin/
 - **API Documentation**: http://localhost:8000/api/docs/
 - **ReDoc Documentation**: http://localhost:8000/api/redoc/
 - **Database**: PostgreSQL on port 5432
 - **Redis**: Redis on port 6379
+
+## Authentication
+
+The API uses Token-based authentication. All endpoints (except authentication endpoints) require authentication.
+
+### Authentication Endpoints
+```
+POST   /api/auth/login/                 # Login and get API token
+POST   /api/auth/logout/                # Logout and invalidate token
+GET    /api/auth/user/                  # Get current user info
+POST   /api/auth/create-superuser/      # Create superuser (initial setup)
+```
+
+### Usage
+
+#### Command Line (curl)
+1. **Get Token**: Use `/api/auth/login/` with username/password
+2. **Use Token**: Include in header: `Authorization: Token your-token-here`
+
+#### Swagger UI Integration
+1. **Access Swagger**: Visit http://localhost:8000
+2. **Login**: Use `/api/auth/login/` endpoint to get your token
+3. **Authorize**: 
+   - Click the **"Authorize"** button (🔒) at the top right
+   - In the **tokenAuth** section, enter: `Token your-actual-token-here`
+   - Click **"Authorize"** then **"Close"**
+4. **Test APIs**: Now all endpoints are authenticated and ready to use
+
+**Example Login:**
+```bash
+curl -X POST http://localhost:8000/api/auth/login/ \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "your-password"}'
+```
+
+**Response:**
+```json
+{
+  "token": "9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b",
+  "user_id": 1,
+  "username": "admin",
+  "message": "Login successful"
+}
+```
 
 ## API Endpoints
 
@@ -240,24 +284,67 @@ SET search_path TO center_123, public;
 
 ## Testing
 
-### API Testing
+### Quick Start Testing
 
+1. **Create Superuser** (for initial setup):
 ```bash
-# Test centers endpoint (requires authentication)
+curl -X POST http://localhost:8000/api/auth/create-superuser/ \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "admin123", "email": "admin@example.com"}'
+```
+
+2. **Login and Get Token**:
+```bash
+curl -X POST http://localhost:8000/api/auth/login/ \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "admin123"}'
+```
+
+3. **Use API with Token**:
+```bash
+# Test centers endpoint (with authentication)
 curl -X GET http://localhost:8000/api/centers/ \
-  -H "Content-Type: application/json"
+  -H "Content-Type: application/json" \
+  -H "Authorization: Token your-token-here"
 
 # Create a center
 curl -X POST http://localhost:8000/api/centers/ \
   -H "Content-Type: application/json" \
+  -H "Authorization: Token your-token-here" \
   -d '{"name": "Test Center", "description": "Test center description"}'
 ```
 
-### Sample Data
-The system includes pre-created test data:
-- 2 Centers: "Istanbul Medical Center" and "Ankara Research Lab"  
-- 3 Users with different roles
-- Sample data in tenant schemas
+### Interactive Testing with Swagger UI
+
+**Step-by-Step Guide:**
+
+1. **Open Browser**: Navigate to http://localhost:8000
+2. **Create/Login User**:
+   - First time: Use `POST /api/auth/create-superuser/` 
+   - Existing user: Use `POST /api/auth/login/`
+3. **Copy Token**: From the login response, copy the token value
+4. **Authorize in Swagger**:
+   ```
+   📌 Click "Authorize" button (🔒 icon) at top right
+   📌 In "tokenAuth" field, enter: Token your-token-here
+   📌 Click "Authorize" → "Close"
+   ```
+5. **Test APIs**: All endpoints now work with authentication
+
+**⚠️ Important Token Format:**
+```
+✅ Correct:   Token 9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b
+❌ Wrong:     9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b
+❌ Wrong:     Bearer 9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b
+```
+**Must include "Token " prefix with space!**
+
+### Interactive API Documentation
+
+- **Primary Interface**: http://localhost:8000 (automatically redirects to Swagger UI)
+- **Full Documentation**: Comprehensive interactive API documentation with authentication
+- **Test Environment**: Built-in testing interface for all endpoints
+- **Authentication Integration**: Seamless token-based authentication in browser
 
 ## Production Deployment
 
@@ -278,12 +365,12 @@ The system includes pre-created test data:
 ## Technology Stack
 
 - **Django 4.2+**: Web framework
-- **Django REST Framework**: API framework
+- **Django REST Framework**: API framework with Token authentication
 - **PostgreSQL 15**: Database with schema-based multi-tenancy
 - **Redis 7**: Caching and session storage
 - **Docker**: Containerization
 - **psycopg2**: PostgreSQL adapter
-- **drf-spectacular**: API documentation
+- **drf-spectacular**: Interactive API documentation (Swagger UI)
 
 ## Contributing
 

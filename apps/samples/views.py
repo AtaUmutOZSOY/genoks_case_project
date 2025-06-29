@@ -10,6 +10,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.db import transaction
 from django.utils import timezone
 from django.db.models import Count, Avg
+from drf_spectacular.utils import extend_schema, extend_schema_view
 
 from .models import Sample
 from .serializers import (
@@ -24,6 +25,38 @@ from .serializers import (
 from apps.common.pagination import StandardResultsSetPagination
 
 
+@extend_schema_view(
+    list=extend_schema(
+        summary="List Samples",
+        description="Get a list of all active samples in the current tenant schema.",
+        tags=["Samples"]
+    ),
+    create=extend_schema(
+        summary="Create Sample", 
+        description="Create a new sample in the current tenant schema.",
+        tags=["Samples"]
+    ),
+    retrieve=extend_schema(
+        summary="Get Sample Details",
+        description="Retrieve detailed information about a specific sample.",
+        tags=["Samples"]
+    ),
+    update=extend_schema(
+        summary="Update Sample",
+        description="Update sample information.",
+        tags=["Samples"]
+    ),
+    partial_update=extend_schema(
+        summary="Partial Update Sample", 
+        description="Partially update sample information.",
+        tags=["Samples"]
+    ),
+    destroy=extend_schema(
+        summary="Soft Delete Sample",
+        description="Soft delete a sample (sets is_active=False).",
+        tags=["Samples"]
+    ),
+)
 class SampleViewSet(viewsets.ModelViewSet):
     """
     ViewSet for Sample CRUD operations within tenant schemas.
@@ -175,6 +208,12 @@ class SampleViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
     
+    @extend_schema(
+        summary="Restore Soft Deleted Sample",
+        description="Restore a soft deleted sample (sets is_active=True).",
+        tags=["Samples"],
+        responses={200: {'description': 'Sample restored successfully'}}
+    )
     @action(detail=True, methods=['post'])
     def restore(self, request, pk=None):
         """Restore a soft-deleted sample."""
@@ -207,6 +246,12 @@ class SampleViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
     
+    @extend_schema(
+        summary="Process Sample",
+        description="Handle sample processing actions: start, complete, reject, or archive.",
+        tags=["Samples"],
+        responses={200: {'description': 'Sample processing action completed successfully'}}
+    )
     @action(detail=True, methods=['post'])
     def process(self, request, pk=None):
         """Handle sample processing actions."""
@@ -258,6 +303,12 @@ class SampleViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
     
+    @extend_schema(
+        summary="Get Sample by Barcode",
+        description="Retrieve a sample by its barcode identifier.",
+        tags=["Samples"],
+        responses={200: {'description': 'Sample found by barcode'}}
+    )
     @action(detail=False, methods=['get'])
     def by_barcode(self, request):
         """Get sample by barcode."""
@@ -291,6 +342,12 @@ class SampleViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
     
+    @extend_schema(
+        summary="Get Samples by User",
+        description="Get all samples created by a specific user.",
+        tags=["Samples"],
+        responses={200: {'description': 'Samples filtered by user'}}
+    )
     @action(detail=False, methods=['get'])
     def by_user(self, request):
         """Get samples by user ID."""
@@ -320,6 +377,12 @@ class SampleViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
     
+    @extend_schema(
+        summary="Get Samples by Status",
+        description="Get samples grouped by their processing status.",
+        tags=["Samples"],
+        responses={200: {'description': 'Samples grouped by status'}}
+    )
     @action(detail=False, methods=['get'])
     def by_status(self, request):
         """Get samples grouped by status."""
@@ -347,6 +410,12 @@ class SampleViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
     
+    @extend_schema(
+        summary="Get Samples by Type",
+        description="Get samples grouped by their sample type (blood, urine, tissue, etc.).",
+        tags=["Samples"],
+        responses={200: {'description': 'Samples grouped by type'}}
+    )
     @action(detail=False, methods=['get'])
     def by_type(self, request):
         """Get samples grouped by type."""
@@ -374,6 +443,12 @@ class SampleViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
     
+    @extend_schema(
+        summary="Get Sample Statistics",
+        description="Get statistical information about samples in the current tenant.",
+        tags=["Samples"],
+        responses={200: {'description': 'Sample statistics'}}
+    )
     @action(detail=False, methods=['get'])
     def stats(self, request):
         """Get comprehensive statistics for samples."""

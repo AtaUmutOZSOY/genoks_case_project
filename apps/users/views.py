@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import transaction
+from drf_spectacular.utils import extend_schema, extend_schema_view
 
 from .models import User
 from .serializers import (
@@ -21,6 +22,38 @@ from apps.centers.models import Center
 from apps.common.pagination import StandardResultsSetPagination
 
 
+@extend_schema_view(
+    list=extend_schema(
+        summary="List Users",
+        description="Get a list of all active users in the system.",
+        tags=["Users"]
+    ),
+    create=extend_schema(
+        summary="Create User", 
+        description="Create a new user and assign them to a center.",
+        tags=["Users"]
+    ),
+    retrieve=extend_schema(
+        summary="Get User Details",
+        description="Retrieve detailed information about a specific user.",
+        tags=["Users"]
+    ),
+    update=extend_schema(
+        summary="Update User",
+        description="Update user information.",
+        tags=["Users"]
+    ),
+    partial_update=extend_schema(
+        summary="Partial Update User", 
+        description="Partially update user information.",
+        tags=["Users"]
+    ),
+    destroy=extend_schema(
+        summary="Soft Delete User",
+        description="Soft delete a user (sets is_active=False).",
+        tags=["Users"]
+    ),
+)
 class UserViewSet(viewsets.ModelViewSet):
     """
     ViewSet for User CRUD operations.
@@ -157,6 +190,12 @@ class UserViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
     
+    @extend_schema(
+        summary="Restore Soft Deleted User",
+        description="Restore a soft deleted user (sets is_active=True).",
+        tags=["Users"],
+        responses={200: {'description': 'User restored successfully'}}
+    )
     @action(detail=True, methods=['post'])
     def restore(self, request, pk=None):
         """Restore a soft-deleted user."""
@@ -189,6 +228,12 @@ class UserViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
     
+    @extend_schema(
+        summary="Change User Center",
+        description="Change the center assignment of a user.",
+        tags=["Users"],
+        responses={200: {'description': 'User center changed successfully'}}
+    )
     @action(detail=True, methods=['post'])
     def change_center(self, request, pk=None):
         """Change user's center assignment."""
@@ -235,6 +280,12 @@ class UserViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
     
+    @extend_schema(
+        summary="Change User Role",
+        description="Change the role of a user (admin, user, viewer).",
+        tags=["Users"],
+        responses={200: {'description': 'User role changed successfully'}}
+    )
     @action(detail=True, methods=['post'])
     def change_role(self, request, pk=None):
         """Change user's role."""
@@ -274,6 +325,12 @@ class UserViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
     
+    @extend_schema(
+        summary="Get Users by Center",
+        description="Get users grouped by their assigned centers.",
+        tags=["Users"],
+        responses={200: {'description': 'Users grouped by center'}}
+    )
     @action(detail=False, methods=['get'])
     def by_center(self, request):
         """Get users grouped by center."""
@@ -303,6 +360,12 @@ class UserViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
     
+    @extend_schema(
+        summary="Get Users Summary",
+        description="Get summary statistics for all users including counts by role and center.",
+        tags=["Users"],
+        responses={200: {'description': 'User summary statistics'}}
+    )
     @action(detail=False, methods=['get'])
     def summary(self, request):
         """Get summary statistics for users."""

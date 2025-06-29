@@ -37,6 +37,7 @@ DJANGO_APPS = [
 
 THIRD_PARTY_APPS = [
     'rest_framework',
+    'rest_framework.authtoken',
     'corsheaders',
     'drf_spectacular',
 ]
@@ -131,7 +132,7 @@ TENANT_SCHEMA_PREFIX = 'center_'
 # REST Framework Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -164,6 +165,10 @@ SPECTACULAR_SETTINGS = {
     },
     'TAGS': [
         {
+            'name': 'Authentication',
+            'description': 'Authentication and authorization endpoints',
+        },
+        {
             'name': 'Centers',
             'description': 'Center management operations (Public Schema)',
         },
@@ -178,6 +183,23 @@ SPECTACULAR_SETTINGS = {
     ],
     'COMPONENT_SPLIT_REQUEST': True,
     'SORT_OPERATIONS': False,
+    'TAGS_SORTER': 'alpha',
+    'OPERATIONS_SORTER': 'alpha',
+    'COMPONENTS': {
+        'securitySchemes': {
+            'tokenAuth': {
+                'type': 'apiKey',
+                'in': 'header',
+                'name': 'Authorization',
+                'description': 'Token-based authentication with required prefix "Token"'
+            }
+        }
+    },
+    'SECURITY': [
+        {
+            'tokenAuth': []
+        }
+    ]
 }
 
 # CORS Configuration
@@ -217,12 +239,6 @@ LOGGING = {
         },
     },
     'handlers': {
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs' / 'django.log',
-            'formatter': 'verbose',
-        },
         'console': {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
@@ -230,7 +246,7 @@ LOGGING = {
         },
     },
     'root': {
-        'handlers': ['console', 'file'],
+        'handlers': ['console'],
         'level': config('LOG_LEVEL', default='INFO'),
     },
 }
