@@ -117,10 +117,16 @@ class UserCreateSerializer(serializers.ModelSerializer):
     Serializer for creating new users.
     """
     
+    password = serializers.CharField(
+        write_only=True,  # Password'u sadece input olarak al, response'da gösterme
+        min_length=6,
+        help_text="User's password (minimum 6 characters)"
+    )
+    
     class Meta:
         model = User
         fields = [
-            'username', 'email', 'first_name', 'last_name', 
+            'username', 'email', 'password', 'first_name', 'last_name', 
             'phone', 'center', 'role'
         ]
     
@@ -131,7 +137,12 @@ class UserCreateSerializer(serializers.ModelSerializer):
         
         value = value.lower().strip()
         
+        # Check uniqueness in both custom User and Django User
         if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("A user with this username already exists.")
+        
+        from django.contrib.auth.models import User as DjangoUser
+        if DjangoUser.objects.filter(username=value).exists():
             raise serializers.ValidationError("A user with this username already exists.")
         
         return value
@@ -143,9 +154,20 @@ class UserCreateSerializer(serializers.ModelSerializer):
         
         value = value.lower().strip()
         
+        # Check uniqueness in both custom User and Django User
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError("A user with this email already exists.")
         
+        from django.contrib.auth.models import User as DjangoUser
+        if DjangoUser.objects.filter(email=value).exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+        
+        return value
+    
+    def validate_password(self, value):
+        """Validate password."""
+        if len(value) < 6:
+            raise serializers.ValidationError("Password must be at least 6 characters long.")
         return value
     
     def validate_center(self, value):
@@ -166,13 +188,38 @@ class UserCreateSerializer(serializers.ModelSerializer):
         return value
     
     def create(self, validated_data):
-        """Create user with audit fields."""
-        request = self.context.get('request')
-        if request and hasattr(request, 'user') and request.user.is_authenticated:
-            validated_data['created_by'] = str(request.user.username)
-            validated_data['updated_by'] = str(request.user.username)
+        """Create both Django User and custom User."""
+        from django.contrib.auth.models import User as DjangoUser
+        from django.db import transaction
         
-        return User.objects.create(**validated_data)
+        password = validated_data.pop('password')
+        request = self.context.get('request')
+        
+        with transaction.atomic():
+            # Create Django User first (for authentication)
+            django_user = DjangoUser.objects.create_user(
+                username=validated_data['username'],
+                email=validated_data['email'],
+                password=password,
+                first_name=validated_data['first_name'],
+                last_name=validated_data['last_name']
+            )
+            
+            # Add audit fields to custom user
+            if request and hasattr(request, 'user') and request.user.is_authenticated:
+                validated_data['created_by'] = str(request.user.username)
+                validated_data['updated_by'] = str(request.user.username)
+            
+            # Create custom User (for business logic)
+            custom_user = User.objects.create(**validated_data)
+            
+            # Store password and username for message (güvenli mesaj için)
+            custom_user._login_info = {
+                'username': custom_user.username,
+                'password': password
+            }
+            
+            return custom_user
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):

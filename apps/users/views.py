@@ -3,7 +3,6 @@ Views for User management.
 """
 
 from rest_framework import viewsets, status, filters
-from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
@@ -15,8 +14,7 @@ from .serializers import (
     UserSerializer,
     UserListSerializer,
     UserCreateSerializer,
-    UserUpdateSerializer,
-    CenterUsersSerializer
+    UserUpdateSerializer
 )
 from apps.centers.models import Center
 from apps.common.pagination import StandardResultsSetPagination
@@ -43,14 +41,9 @@ from apps.common.pagination import StandardResultsSetPagination
         description="Update user information.",
         tags=["Users"]
     ),
-    partial_update=extend_schema(
-        summary="Partial Update User", 
-        description="Partially update user information.",
-        tags=["Users"]
-    ),
     destroy=extend_schema(
-        summary="Soft Delete User",
-        description="Soft delete a user (sets is_active=False).",
+        summary="Delete User",
+        description="Delete a user (sets is_active=False).",
         tags=["Users"]
     ),
 )
@@ -63,13 +56,14 @@ class UserViewSet(viewsets.ModelViewSet):
     - Create new user
     - Retrieve user details
     - Update user
-    - Delete user (soft delete)
+    - Delete user
     """
     
     queryset = User.objects.all()
     permission_classes = [IsAuthenticated]
     pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    http_method_names = ['get', 'post', 'put', 'delete', 'head', 'options']
     
     # Filtering options
     filterset_fields = ['is_active', 'role', 'center']
@@ -83,7 +77,7 @@ class UserViewSet(viewsets.ModelViewSet):
             return UserListSerializer
         elif self.action == 'create':
             return UserCreateSerializer
-        elif self.action in ['update', 'partial_update']:
+        elif self.action == 'update':
             return UserUpdateSerializer
         else:
             return UserSerializer
@@ -119,9 +113,18 @@ class UserViewSet(viewsets.ModelViewSet):
             # Return the created user with full details
             response_serializer = UserSerializer(user, context={'request': request})
             
+            # Get login info for message
+            login_info = getattr(user, '_login_info', None)
+            if login_info:
+                message = (f'User created successfully. '
+                          f'Login credentials - Username: {login_info["username"]}, '
+                          f'Password: {login_info["password"]}')
+            else:
+                message = 'User created successfully'
+            
             return Response(
                 {
-                    'message': 'User created successfully',
+                    'message': message,
                     'data': response_serializer.data
                 },
                 status=status.HTTP_201_CREATED
@@ -166,7 +169,7 @@ class UserViewSet(viewsets.ModelViewSet):
             )
     
     def destroy(self, request, *args, **kwargs):
-        """Soft delete a user."""
+        """Delete a user."""
         instance = self.get_object()
         
         try:
@@ -175,7 +178,7 @@ class UserViewSet(viewsets.ModelViewSet):
             
             return Response(
                 {
-                    'message': f'User "{instance.username}" has been deactivated',
+                    'message': f'User "{instance.username}" has been deleted',
                     'id': instance.id
                 },
                 status=status.HTTP_200_OK
@@ -185,221 +188,6 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response(
                 {
                     'error': 'Failed to delete user',
-                    'details': str(e)
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-    
-    @extend_schema(
-        summary="Restore Soft Deleted User",
-        description="Restore a soft deleted user (sets is_active=True).",
-        tags=["Users"],
-        responses={200: {'description': 'User restored successfully'}}
-    )
-    @action(detail=True, methods=['post'])
-    def restore(self, request, pk=None):
-        """Restore a soft-deleted user."""
-        user = self.get_object()
-        
-        if user.is_active:
-            return Response(
-                {'message': 'User is already active'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        try:
-            user.restore(user=request.user)
-            
-            response_serializer = UserSerializer(user, context={'request': request})
-            
-            return Response(
-                {
-                    'message': f'User "{user.username}" has been restored',
-                    'data': response_serializer.data
-                }
-            )
-            
-        except Exception as e:
-            return Response(
-                {
-                    'error': 'Failed to restore user',
-                    'details': str(e)
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-    
-    @extend_schema(
-        summary="Change User Center",
-        description="Change the center assignment of a user.",
-        tags=["Users"],
-        responses={200: {'description': 'User center changed successfully'}}
-    )
-    @action(detail=True, methods=['post'])
-    def change_center(self, request, pk=None):
-        """Change user's center assignment."""
-        user = self.get_object()
-        center_id = request.data.get('center_id')
-        
-        if not center_id:
-            return Response(
-                {'error': 'center_id is required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        try:
-            new_center = Center.objects.get(id=center_id, is_active=True)
-            
-            change_info = user.change_center(new_center, user=request.user)
-            
-            response_serializer = UserSerializer(user, context={'request': request})
-            
-            return Response(
-                {
-                    'message': f'User center changed from "{change_info["old_center"]}" to "{change_info["new_center"]}"',
-                    'data': response_serializer.data,
-                    'change_info': change_info
-                }
-            )
-            
-        except Center.DoesNotExist:
-            return Response(
-                {'error': 'Center not found or inactive'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        except ValueError as e:
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        except Exception as e:
-            return Response(
-                {
-                    'error': 'Failed to change user center',
-                    'details': str(e)
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-    
-    @extend_schema(
-        summary="Change User Role",
-        description="Change the role of a user (admin, user, viewer).",
-        tags=["Users"],
-        responses={200: {'description': 'User role changed successfully'}}
-    )
-    @action(detail=True, methods=['post'])
-    def change_role(self, request, pk=None):
-        """Change user's role."""
-        user = self.get_object()
-        new_role = request.data.get('role')
-        
-        if not new_role:
-            return Response(
-                {'error': 'role is required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        try:
-            change_info = user.update_role(new_role, user=request.user)
-            
-            response_serializer = UserSerializer(user, context={'request': request})
-            
-            return Response(
-                {
-                    'message': f'User role changed from "{change_info["old_role"]}" to "{change_info["new_role"]}"',
-                    'data': response_serializer.data,
-                    'change_info': change_info
-                }
-            )
-            
-        except ValueError as e:
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        except Exception as e:
-            return Response(
-                {
-                    'error': 'Failed to change user role',
-                    'details': str(e)
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-    
-    @extend_schema(
-        summary="Get Users by Center",
-        description="Get users grouped by their assigned centers.",
-        tags=["Users"],
-        responses={200: {'description': 'Users grouped by center'}}
-    )
-    @action(detail=False, methods=['get'])
-    def by_center(self, request):
-        """Get users grouped by center."""
-        try:
-            # Get all active centers
-            centers = Center.objects.filter(is_active=True)
-            
-            result = {}
-            for center in centers:
-                users = User.get_users_by_center(center)
-                serializer = CenterUsersSerializer(users, many=True)
-                result[center.name] = {
-                    'center_id': center.id,
-                    'center_name': center.name,
-                    'user_count': users.count(),
-                    'users': serializer.data
-                }
-            
-            return Response({'data': result})
-            
-        except Exception as e:
-            return Response(
-                {
-                    'error': 'Failed to get users by center',
-                    'details': str(e)
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-    
-    @extend_schema(
-        summary="Get Users Summary",
-        description="Get summary statistics for all users including counts by role and center.",
-        tags=["Users"],
-        responses={200: {'description': 'User summary statistics'}}
-    )
-    @action(detail=False, methods=['get'])
-    def summary(self, request):
-        """Get summary statistics for users."""
-        try:
-            total_users = User.objects.count()
-            active_users = User.objects.filter(is_active=True).count()
-            inactive_users = total_users - active_users
-            
-            # Count by role
-            role_counts = {}
-            for role_key, role_name in User.ROLE_CHOICES:
-                count = User.objects.filter(role=role_key, is_active=True).count()
-                role_counts[role_name] = count
-            
-            # Count by center
-            center_counts = {}
-            for center in Center.objects.filter(is_active=True):
-                count = User.get_users_by_center(center).count()
-                center_counts[center.name] = count
-            
-            summary = {
-                'total_users': total_users,
-                'active_users': active_users,
-                'inactive_users': inactive_users,
-                'users_by_role': role_counts,
-                'users_by_center': center_counts
-            }
-            
-            return Response({'data': summary})
-            
-        except Exception as e:
-            return Response(
-                {
-                    'error': 'Failed to get user summary',
                     'details': str(e)
                 },
                 status=status.HTTP_400_BAD_REQUEST

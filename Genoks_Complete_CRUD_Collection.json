@@ -1,0 +1,778 @@
+{
+	"info": {
+		"_postman_id": "genoks-complete-crud-2025",
+		"name": "Genoks API - Complete CRUD Collection",
+		"description": "Complete CRUD operations for Genoks Multi-Tenant Laboratory Management System\n\nFeatures:\n- Automatic token management\n- Automatic ID capture and reuse\n- All CRUD operations (Create, Read, Update, Delete)\n- Centers, Users, and Samples management\n- Test scripts for validation\n- Ready for live demonstration",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Authentication",
+			"item": [
+				{
+					"name": "1.1 Admin Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Admin login successful', function () {",
+									"    pm.response.to.have.status(200);",
+									"    const responseJson = pm.response.json();",
+									"    pm.environment.set('auth_token', responseJson.token);",
+									"    pm.environment.set('admin_user_id', responseJson.user_id);",
+									"    console.log('Token saved:', responseJson.token);",
+									"    console.log('Admin authenticated successfully');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"{{username}}\",\n    \"password\": \"{{password}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "login", ""]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Centers CRUD",
+			"item": [
+				{
+					"name": "2.1 Create Center",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Center created successfully', function () {",
+									"    pm.response.to.have.status(201);",
+									"    const responseJson = pm.response.json();",
+									"    pm.environment.set('center_id', responseJson.data.id);",
+									"    pm.environment.set('center_schema', responseJson.data.schema_name);",
+									"    console.log('Center created with ID:', responseJson.data.id);",
+									"    console.log('Schema:', responseJson.data.schema_name);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Demo Medical Laboratory\",\n    \"description\": \"Advanced medical testing facility for demonstration\",\n    \"settings\": {\n        \"timezone\": \"Europe/Istanbul\",\n        \"language\": \"tr\",\n        \"max_samples_per_day\": 500,\n        \"lab_type\": \"medical\",\n        \"certifications\": [\"ISO 15189\", \"CAP\"]\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/centers/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "centers", ""]
+						}
+					}
+				},
+				{
+					"name": "2.2 List All Centers",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Centers listed successfully', function () {",
+									"    pm.response.to.have.status(200);",
+									"    const responseJson = pm.response.json();",
+									"    console.log('Total Centers:', responseJson.count);",
+									"    responseJson.results.forEach(center => {",
+									"        console.log('- ' + center.name + ' (ID: ' + center.id + ')');",
+									"    });",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/centers/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "centers", ""]
+						}
+					}
+				},
+				{
+					"name": "2.3 Get Center by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Center details retrieved', function () {",
+									"    pm.response.to.have.status(200);",
+									"    const responseJson = pm.response.json();",
+									"    console.log('Center Name:', responseJson.data.name);",
+									"    console.log('Schema:', responseJson.data.schema_name);",
+									"    console.log('Settings:', JSON.stringify(responseJson.data.settings));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/centers/{{center_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "centers", "{{center_id}}", ""]
+						}
+					}
+				},
+				{
+					"name": "2.4 Update Center",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Center updated successfully', function () {",
+									"    pm.response.to.have.status(200);",
+									"    const responseJson = pm.response.json();",
+									"    console.log('Center updated:', responseJson.data.name);",
+									"    console.log('New description:', responseJson.data.description);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Demo Medical Laboratory - Updated\",\n    \"description\": \"Advanced medical testing facility - Updated for demonstration\",\n    \"settings\": {\n        \"timezone\": \"Europe/Istanbul\",\n        \"language\": \"tr\",\n        \"max_samples_per_day\": 750,\n        \"lab_type\": \"medical\",\n        \"certifications\": [\"ISO 15189\", \"CAP\", \"JCI\"]\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/centers/{{center_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "centers", "{{center_id}}", ""]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "3. Users CRUD",
+			"item": [
+				{
+					"name": "3.1 Create User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('User created successfully', function () {",
+									"    pm.response.to.have.status(201);",
+									"    const responseJson = pm.response.json();",
+									"    pm.environment.set('user_id', responseJson.data.id);",
+									"    console.log('User created with ID:', responseJson.data.id);",
+									"    console.log('Full name:', responseJson.data.full_name);",
+									"    console.log('Login credentials:', responseJson.message);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"demo.technician\",\n    \"email\": \"technician@demolab.com\",\n    \"password\": \"demopass123\",\n    \"first_name\": \"Demo\",\n    \"last_name\": \"Technician\",\n    \"phone\": \"+90 212 555 0101\",\n    \"role\": \"user\",\n    \"center\": \"{{center_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", ""]
+						}
+					}
+				},
+				{
+					"name": "3.2 List All Users",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Users listed successfully', function () {",
+									"    pm.response.to.have.status(200);",
+									"    const responseJson = pm.response.json();",
+									"    console.log('Total Users:', responseJson.count);",
+									"    responseJson.results.forEach(user => {",
+									"        console.log('- ' + user.full_name + ' (' + user.role + ') - ' + user.center_name);",
+									"    });",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", ""]
+						}
+					}
+				},
+				{
+					"name": "3.3 Get User by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('User details retrieved', function () {",
+									"    pm.response.to.have.status(200);",
+									"    const responseJson = pm.response.json();",
+									"    console.log('User:', responseJson.data.full_name);",
+									"    console.log('Email:', responseJson.data.email);",
+									"    console.log('Role:', responseJson.data.role);",
+									"    console.log('Center:', responseJson.data.center_name);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users/{{user_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "{{user_id}}", ""]
+						}
+					}
+				},
+				{
+					"name": "3.4 Update User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('User updated successfully', function () {",
+									"    pm.response.to.have.status(200);",
+									"    const responseJson = pm.response.json();",
+									"    console.log('User updated:', responseJson.data.full_name);",
+									"    console.log('New phone:', responseJson.data.phone);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"demo.technician\",\n    \"email\": \"technician.updated@demolab.com\",\n    \"first_name\": \"Demo Updated\",\n    \"last_name\": \"Technician\",\n    \"phone\": \"+90 212 555 0202\",\n    \"role\": \"user\",\n    \"center\": \"{{center_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/{{user_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "{{user_id}}", ""]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "4. Samples CRUD",
+			"item": [
+				{
+					"name": "4.1 Create Sample",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Sample created successfully', function () {",
+									"    pm.response.to.have.status(201);",
+									"    const responseJson = pm.response.json();",
+									"    pm.environment.set('sample_id', responseJson.data.id);",
+									"    console.log('Sample created with ID:', responseJson.data.id);",
+									"    console.log('Sample name:', responseJson.data.name);",
+									"    console.log('Barcode:', responseJson.data.barcode);",
+									"    console.log('Type:', responseJson.data.sample_type);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Demo Patient - Complete Blood Count\",\n    \"description\": \"Routine blood analysis for demonstration\",\n    \"sample_type\": \"blood\",\n    \"barcode\": \"DEMO-CBC-001\",\n    \"collection_location\": \"Demo Lab - Collection Room A\",\n    \"collection_date\": \"2025-01-15T09:30:00Z\",\n    \"user_id\": \"{{user_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/centers/{{center_id}}/samples/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "centers", "{{center_id}}", "samples", ""]
+						}
+					}
+				},
+				{
+					"name": "4.2 List Center Samples",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Samples listed successfully', function () {",
+									"    pm.response.to.have.status(200);",
+									"    const responseJson = pm.response.json();",
+									"    console.log('Total Samples in this Center:', responseJson.count);",
+									"    responseJson.results.forEach(sample => {",
+									"        console.log('- ' + sample.name + ' (' + sample.sample_type + ') - ' + sample.barcode);",
+									"    });",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/centers/{{center_id}}/samples/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "centers", "{{center_id}}", "samples", ""]
+						}
+					}
+				},
+				{
+					"name": "4.3 Get Sample by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Sample details retrieved', function () {",
+									"    pm.response.to.have.status(200);",
+									"    const responseJson = pm.response.json();",
+									"    console.log('Sample:', responseJson.data.name);",
+									"    console.log('Type:', responseJson.data.sample_type);",
+									"    console.log('Status:', responseJson.data.status);",
+									"    console.log('Barcode:', responseJson.data.barcode);",
+									"    console.log('Collection Date:', responseJson.data.collection_date);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/centers/{{center_id}}/samples/{{sample_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "centers", "{{center_id}}", "samples", "{{sample_id}}", ""]
+						}
+					}
+				},
+				{
+					"name": "4.4 Update Sample",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Sample updated successfully', function () {",
+									"    pm.response.to.have.status(200);",
+									"    const responseJson = pm.response.json();",
+									"    console.log('Sample updated:', responseJson.data.name);",
+									"    console.log('New status:', responseJson.data.status);",
+									"    console.log('Updated description:', responseJson.data.description);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Demo Patient - Complete Blood Count - Updated\",\n    \"description\": \"Routine blood analysis for demonstration - Processing completed\",\n    \"sample_type\": \"blood\",\n    \"barcode\": \"DEMO-CBC-001\",\n    \"collection_location\": \"Demo Lab - Collection Room A\",\n    \"collection_date\": \"2025-01-15T09:30:00Z\",\n    \"status\": \"completed\",\n    \"user_id\": \"{{user_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/centers/{{center_id}}/samples/{{sample_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "centers", "{{center_id}}", "samples", "{{sample_id}}", ""]
+						}
+					}
+				},
+				{
+					"name": "4.5 Create Second Sample",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Second sample created successfully', function () {",
+									"    pm.response.to.have.status(201);",
+									"    const responseJson = pm.response.json();",
+									"    pm.environment.set('sample_id_2', responseJson.data.id);",
+									"    console.log('Second sample created with ID:', responseJson.data.id);",
+									"    console.log('Sample name:', responseJson.data.name);",
+									"    console.log('Type:', responseJson.data.sample_type);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Demo Patient - Urinalysis\",\n    \"description\": \"Urine analysis for demonstration\",\n    \"sample_type\": \"urine\",\n    \"barcode\": \"DEMO-URN-002\",\n    \"collection_location\": \"Demo Lab - Collection Room B\",\n    \"collection_date\": \"2025-01-15T10:15:00Z\",\n    \"user_id\": \"{{user_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/centers/{{center_id}}/samples/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "centers", "{{center_id}}", "samples", ""]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "5. Delete Operations (Optional)",
+			"item": [
+				{
+					"name": "5.1 Delete Second Sample",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Sample deleted successfully', function () {",
+									"    pm.response.to.have.status(204);",
+									"    console.log('Second sample deleted successfully');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/centers/{{center_id}}/samples/{{sample_id_2}}/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "centers", "{{center_id}}", "samples", "{{sample_id_2}}", ""]
+						}
+					}
+				},
+				{
+					"name": "5.2 Delete User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('User deleted successfully', function () {",
+									"    pm.response.to.have.status(204);",
+									"    console.log('User deleted successfully');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users/{{user_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "{{user_id}}", ""]
+						}
+					}
+				},
+				{
+					"name": "5.3 Delete Center",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Center deleted successfully', function () {",
+									"    pm.response.to.have.status(204);",
+									"    console.log('Center deleted successfully');",
+									"    console.log('Demo completed - All resources cleaned up');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/centers/{{center_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "centers", "{{center_id}}", ""]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "6. Final Summary",
+			"item": [
+				{
+					"name": "6.1 Final System Status",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Final status check completed', function () {",
+									"    pm.response.to.have.status(200);",
+									"    const responseJson = pm.response.json();",
+									"    console.log('===== COMPLETE CRUD DEMO FINISHED =====');",
+									"    console.log('Final Centers Count:', responseJson.count);",
+									"    console.log('');",
+									"    console.log('OPERATIONS DEMONSTRATED:');",
+									"    console.log('- Authentication with token management');",
+									"    console.log('- Centers: Create, Read, Update, Delete');",
+									"    console.log('- Users: Create, Read, Update, Delete');",
+									"    console.log('- Samples: Create, Read, Update, Delete');",
+									"    console.log('- Multi-tenant URL structure');",
+									"    console.log('- Automatic ID management');",
+									"    console.log('- Complete CRUD lifecycle');",
+									"    console.log('');",
+									"    console.log('API is production-ready!');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/centers/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "centers", ""]
+						}
+					}
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{auth_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		}
+	]
+} 
